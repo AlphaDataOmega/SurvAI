@@ -1,0 +1,343 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==============================================
+// User Management
+// ==============================================
+
+model User {
+  id           String      @id @default(cuid())
+  email        String      @unique
+  name         String?
+  passwordHash String      @map("password_hash")
+  role         UserRole    @default(ADMIN)
+  status       UserStatus  @default(PENDING)
+  lastLoginAt  DateTime?   @map("last_login_at")
+  metadata     Json?
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  sessions         UserSession[]
+  createdSurveys   Survey[]           @relation("CreatedSurveys")
+  updatedSurveys   Survey[]           @relation("UpdatedSurveys")
+  createdOffers    Offer[]            @relation("CreatedOffers")
+  updatedOffers    Offer[]            @relation("UpdatedOffers")
+  createdQuestions Question[]         @relation("CreatedQuestions")
+  updatedQuestions Question[]         @relation("UpdatedQuestions")
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+  SUSPENDED
+}
+
+model UserSession {
+  id             String   @id @default(cuid())
+  userId         String   @map("user_id")
+  token          String   @unique
+  expiresAt      DateTime @map("expires_at")
+  lastActivityAt DateTime @map("last_activity_at")
+  ipAddress      String?  @map("ip_address")
+  userAgent      String?  @map("user_agent")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_sessions")
+}
+
+// ==============================================
+// Survey Management
+// ==============================================
+
+model Survey {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  status      SurveyStatus @default(DRAFT)
+  config      Json?
+  metadata    Json?
+  createdBy   String?      @map("created_by")
+  updatedBy   String?      @map("updated_by")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  creator   User?             @relation("CreatedSurveys", fields: [createdBy], references: [id])
+  updater   User?             @relation("UpdatedSurveys", fields: [updatedBy], references: [id])
+  questions Question[]
+  responses SurveyResponse[]
+
+  @@map("surveys")
+}
+
+enum SurveyStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+model Question {
+  id          String       @id @default(cuid())
+  surveyId    String       @map("survey_id")
+  type        QuestionType
+  text        String
+  description String?
+  config      Json?
+  options     Json?
+  order       Int
+  required    Boolean      @default(false)
+  logic       Json?
+  aiVersions  Json?        @map("ai_versions")
+  createdBy   String?      @map("created_by")
+  updatedBy   String?      @map("updated_by")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  survey    Survey           @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  creator   User?            @relation("CreatedQuestions", fields: [createdBy], references: [id])
+  updater   User?            @relation("UpdatedQuestions", fields: [updatedBy], references: [id])
+  answers   QuestionAnswer[]
+
+  @@map("questions")
+}
+
+enum QuestionType {
+  CTA_OFFER
+}
+
+// ==============================================
+// Survey Responses
+// ==============================================
+
+model SurveyResponse {
+  id          String         @id @default(cuid())
+  surveyId    String         @map("survey_id")
+  sessionData Json           @map("session_data")
+  status      ResponseStatus @default(IN_PROGRESS)
+  startedAt   DateTime       @default(now()) @map("started_at")
+  completedAt DateTime?      @map("completed_at")
+  metadata    Json?
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  survey  Survey           @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  answers QuestionAnswer[]
+  clicks  ClickTrack[]
+
+  @@map("survey_responses")
+}
+
+enum ResponseStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+  TIMEOUT
+}
+
+model QuestionAnswer {
+  id           String   @id @default(cuid())
+  responseId   String   @map("response_id")
+  questionId   String   @map("question_id")
+  value        Json
+  timeToAnswer Int?     @map("time_to_answer")
+  answeredAt   DateTime @default(now()) @map("answered_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  response SurveyResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  question Question       @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([responseId, questionId])
+  @@map("question_answers")
+}
+
+// ==============================================
+// Offer Management
+// ==============================================
+
+model Offer {
+  id             String      @id @default(cuid())
+  title          String
+  description    String?
+  category       OfferCategory
+  status         OfferStatus @default(PENDING)
+  destinationUrl String      @map("destination_url")
+  pixelUrl       String?     @map("pixel_url")
+  config         Json?
+  targeting      Json?
+  metrics        Json?
+  createdBy      String?     @map("created_by")
+  updatedBy      String?     @map("updated_by")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  creator     User?            @relation("CreatedOffers", fields: [createdBy], references: [id])
+  updater     User?            @relation("UpdatedOffers", fields: [updatedBy], references: [id])
+  clicks      ClickTrack[]
+  conversions ConversionTrack[]
+
+  @@map("offers")
+}
+
+enum OfferCategory {
+  FINANCE
+  INSURANCE
+  HEALTH
+  EDUCATION
+  TECHNOLOGY
+  TRAVEL
+  SHOPPING
+  OTHER
+}
+
+enum OfferStatus {
+  ACTIVE
+  PAUSED
+  EXPIRED
+  PENDING
+  ARCHIVED
+}
+
+// ==============================================
+// Click & Conversion Tracking
+// ==============================================
+
+model ClickTrack {
+  id         String      @id @default(cuid())
+  offerId    String      @map("offer_id")
+  responseId String?     @map("response_id")
+  clickId    String      @unique @map("click_id")
+  sessionData Json       @map("session_data")
+  status     ClickStatus @default(PENDING)
+  converted  Boolean     @default(false)
+  convertedAt DateTime?  @map("converted_at")
+  revenue    Decimal?    @db.Decimal(10, 2)
+  metadata   Json?
+  clickedAt  DateTime    @default(now()) @map("clicked_at")
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  offer       Offer            @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  response    SurveyResponse?  @relation(fields: [responseId], references: [id])
+  conversions ConversionTrack[]
+
+  @@map("click_tracks")
+}
+
+enum ClickStatus {
+  VALID
+  PENDING
+  FILTERED
+  DUPLICATE
+  FRAUD
+}
+
+model ConversionTrack {
+  id          String         @id @default(cuid())
+  clickId     String         @map("click_id")
+  offerId     String         @map("offer_id")
+  value       Decimal        @db.Decimal(10, 2)
+  currency    String         @default("USD")
+  type        ConversionType @default(LEAD)
+  externalId  String?        @map("external_id")
+  metadata    Json?
+  convertedAt DateTime       @default(now()) @map("converted_at")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  click ClickTrack @relation(fields: [clickId], references: [id], onDelete: Cascade)
+  offer Offer      @relation(fields: [offerId], references: [id], onDelete: Cascade)
+
+  @@map("conversion_tracks")
+}
+
+enum ConversionType {
+  LEAD
+  SALE
+  SIGNUP
+  DOWNLOAD
+  CUSTOM
+}
+
+// ==============================================
+// Widget Analytics Tracking
+// ==============================================
+
+model WidgetAnalytics {
+  id          String   @id @default(cuid())
+  surveyId    String   @map("survey_id")
+  event       String   // 'loaded' or 'dwell'
+  dwellTimeMs Int?     @map("dwell_time_ms")
+  timestamp   DateTime @default(now())
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("widget_analytics")
+  @@index([surveyId])
+  @@index([event])
+  @@index([timestamp])
+}
+
+// ==============================================
+// Indexes for Performance
+// ==============================================
+
+// User indexes
+// @@index([email])
+// @@index([status])
+// @@index([role])
+
+// Survey indexes
+// @@index([status])
+// @@index([createdAt])
+
+// Question indexes
+// @@index([surveyId])
+// @@index([type])
+
+// Response indexes
+// @@index([surveyId])
+// @@index([status])
+// @@index([startedAt])
+
+// Click tracking indexes
+// @@index([offerId])
+// @@index([clickId])
+// @@index([status])
+// @@index([clickedAt])
+
+// Conversion indexes
+// @@index([clickId])
+// @@index([offerId])
+// @@index([convertedAt])

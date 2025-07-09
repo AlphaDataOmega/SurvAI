@@ -1,0 +1,253 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'shared/**'
+      - 'tests/**'
+      - 'package.json'
+      - 'jest.config.js'
+      - 'playwright.config.ts'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'shared/**'
+      - 'tests/**'
+      - 'package.json'
+      - 'jest.config.js'
+      - 'playwright.config.ts'
+      - '.github/workflows/ci.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  lint-type:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20]
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run linting
+      run: npm run lint
+
+    - name: Run type checking
+      run: npm run type-check
+
+  test-unit-integration:
+    name: Unit & Integration Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20]
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run tests with coverage
+      run: npm run test:coverage
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage/lcov.info
+        flags: unittests
+        name: codecov-${{ matrix.node-version }}
+        fail_ci_if_error: true
+
+    - name: Store coverage artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-${{ matrix.node-version }}
+        path: coverage/
+        retention-days: 7
+
+  test-visual:
+    name: Visual Regression Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20]
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps chromium
+
+    - name: Run visual tests
+      run: npm run test:visual:ci
+
+    - name: Upload Playwright artifacts on failure
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: playwright-report-${{ matrix.node-version }}
+        path: |
+          playwright-report/
+          test-results/
+        retention-days: 7
+
+  coverage-gate:
+    name: Coverage Gate
+    needs: [test-unit-integration]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js 18
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Download coverage artifacts (Node 18)
+      uses: actions/download-artifact@v4
+      with:
+        name: coverage-18
+        path: coverage/
+
+    - name: Validate coverage meets 90% requirement
+      run: |
+        # Check if coverage report exists
+        if [ ! -f "coverage/lcov.info" ]; then
+          echo "❌ Coverage report not found"
+          exit 1
+        fi
+        
+        # Run Jest again to validate coverage thresholds
+        # This will fail if coverage is below 90% as configured in jest.config.js
+        npm run test:coverage -- --passWithNoTests
+        
+        echo "✅ Coverage meets 90% requirement"
+
+  build:
+    name: Build Application
+    needs: [lint-type, test-unit-integration, test-visual, coverage-gate]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20]
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build all packages
+      run: npm run build
+
+    - name: Store build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-${{ matrix.node-version }}
+        path: |
+          frontend/dist/
+          backend/dist/
+          shared/dist/
+        retention-days: 7
+
+  deploy:
+    name: Deploy
+    needs: [build]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build-18
+        path: .
+
+    - name: Generate deployment summary
+      run: |
+        echo "## 🚀 CI/CD Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Status:** ✅ All gates passed" >> $GITHUB_STEP_SUMMARY
+        echo "**Node.js Versions:** 18, 20" >> $GITHUB_STEP_SUMMARY
+        echo "**Coverage:** ≥90% enforced" >> $GITHUB_STEP_SUMMARY
+        echo "**Visual Tests:** Passed" >> $GITHUB_STEP_SUMMARY
+        echo "**Build:** Successful" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📋 Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ **Lint & Type Check**: Passed for Node.js 18 & 20" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ **Unit & Integration Tests**: Passed with coverage ≥90%" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ **Visual Regression Tests**: Passed" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ **Build Process**: Successful for all packages" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "🎉 **Ready for deployment!**" >> $GITHUB_STEP_SUMMARY

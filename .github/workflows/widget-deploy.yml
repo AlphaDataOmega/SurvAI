@@ -1,0 +1,195 @@
+name: Widget Production Deploy
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Force deployment regardless of WIDGET_RELEASE'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.force_deploy == 'true' || vars.WIDGET_RELEASE == 'true' }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run linting
+      run: npm run lint
+
+    - name: Run type checking
+      run: npm run type-check
+
+    - name: Build widget production bundle
+      run: npm run build:widget:prod
+
+    - name: Calculate bundle size
+      run: |
+        BUNDLE_SIZE=$(gzip -c dist/survai-widget.umd.js | wc -c)
+        echo "Bundle size: ${BUNDLE_SIZE} bytes"
+        echo "BUNDLE_SIZE=${BUNDLE_SIZE}" >> $GITHUB_ENV
+        
+        # Convert to KB for display
+        BUNDLE_SIZE_KB=$((BUNDLE_SIZE / 1024))
+        echo "Bundle size: ${BUNDLE_SIZE_KB}KB (gzipped)"
+        
+        # Validate bundle size (fail if > 100KB gzipped)
+        if [ $BUNDLE_SIZE -gt 102400 ]; then
+          echo "❌ Bundle size ${BUNDLE_SIZE_KB}KB exceeds 100KB gzipped limit"
+          exit 1
+        fi
+        
+        echo "✅ Bundle size ${BUNDLE_SIZE_KB}KB is within 100KB gzipped limit"
+
+    - name: Generate SHA-384 integrity hash
+      run: |
+        INTEGRITY_HASH=$(shasum -a 384 dist/survai-widget.umd.js | cut -d' ' -f1)
+        echo "SHA-384 hash: ${INTEGRITY_HASH}"
+        echo "INTEGRITY_HASH=${INTEGRITY_HASH}" >> $GITHUB_ENV
+        echo "${INTEGRITY_HASH}" > dist/survai-widget.umd.js.sha384
+
+    - name: Get package version
+      run: |
+        VERSION=$(node -p "require('./package.json').version")
+        echo "Package version: ${VERSION}"
+        echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
+    - name: Check if version has been incremented
+      run: |
+        # Check if git tag for current version already exists
+        if git rev-parse "widget-v${VERSION}" >/dev/null 2>&1; then
+          echo "❌ Version ${VERSION} already exists as git tag widget-v${VERSION}"
+          echo "Please increment the version in package.json before deploying"
+          exit 1
+        fi
+        echo "✅ Version ${VERSION} is new"
+
+    - name: Configure Google Cloud credentials
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GOOGLE_CLOUD_STORAGE_KEY }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Upload bundle to Google Cloud Storage
+      run: |
+        BUCKET_NAME=${{ secrets.GOOGLE_CLOUD_STORAGE_BUCKET }}
+        
+        # Upload versioned file
+        gsutil cp dist/survai-widget.umd.js gs://${BUCKET_NAME}/widget/${VERSION}/survai-widget.js
+        gsutil cp dist/survai-widget.umd.js.sha384 gs://${BUCKET_NAME}/widget/${VERSION}/survai-widget.js.sha384
+        
+        # Set public read permissions
+        gsutil acl ch -u AllUsers:R gs://${BUCKET_NAME}/widget/${VERSION}/survai-widget.js
+        gsutil acl ch -u AllUsers:R gs://${BUCKET_NAME}/widget/${VERSION}/survai-widget.js.sha384
+        
+        # Set appropriate cache headers
+        gsutil -m setmeta -h "Cache-Control:public, max-age=31536000" gs://${BUCKET_NAME}/widget/${VERSION}/survai-widget.js
+        gsutil -m setmeta -h "Cache-Control:public, max-age=31536000" gs://${BUCKET_NAME}/widget/${VERSION}/survai-widget.js.sha384
+        
+        echo "✅ Bundle uploaded to: https://cdn.survai.app/widget/${VERSION}/survai-widget.js"
+
+    - name: Invalidate CloudFlare cache
+      run: |
+        # Trigger CloudFlare invalidation for the specific version path
+        curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
+          -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+          -H "Content-Type: application/json" \
+          --data '{"files":["https://cdn.survai.app/widget/'${VERSION}'/survai-widget.js","https://cdn.survai.app/widget/'${VERSION}'/survai-widget.js.sha384"]}'
+        
+        echo "✅ CloudFlare cache invalidated for version ${VERSION}"
+
+    - name: Update widget documentation
+      run: |
+        # Run documentation update script
+        node scripts/update-widget-doc.mjs
+        
+        # Check if documentation was updated
+        if git diff --quiet docs/WIDGET.md; then
+          echo "ℹ️ Documentation unchanged"
+        else
+          echo "✅ Documentation updated with new version ${VERSION}"
+        fi
+
+    - name: Create Git tag
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        
+        # Create annotated tag
+        git tag -a "widget-v${VERSION}" -m "Widget release v${VERSION}
+
+        Bundle size: ${BUNDLE_SIZE} bytes (gzipped)
+        SHA-384: ${INTEGRITY_HASH}
+        CDN URL: https://cdn.survai.app/widget/${VERSION}/survai-widget.js
+        
+        🤖 Generated with Claude Code
+        
+        Co-Authored-By: Claude <noreply@anthropic.com>"
+        
+        # Push tag to remote
+        git push origin "widget-v${VERSION}"
+        
+        echo "✅ Git tag widget-v${VERSION} created and pushed"
+
+    - name: Commit documentation updates
+      run: |
+        # Only commit if there are changes
+        if ! git diff --quiet docs/WIDGET.md; then
+          git add docs/WIDGET.md
+          git commit -m "docs: update widget embed snippet for v${VERSION}
+
+          - Updated CDN URL to https://cdn.survai.app/widget/${VERSION}/survai-widget.js
+          - Updated SHA-384 integrity hash to ${INTEGRITY_HASH}
+          - Bundle size: ${BUNDLE_SIZE} bytes (gzipped)
+          
+          🤖 Generated with Claude Code
+          
+          Co-Authored-By: Claude <noreply@anthropic.com>"
+          
+          git push origin main
+          echo "✅ Documentation updates committed and pushed"
+        else
+          echo "ℹ️ No documentation changes to commit"
+        fi
+
+    - name: Generate deployment summary
+      run: |
+        echo "## 🚀 Widget Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Version:** \`${VERSION}\`" >> $GITHUB_STEP_SUMMARY
+        echo "**Bundle Size:** ${BUNDLE_SIZE} bytes (gzipped)" >> $GITHUB_STEP_SUMMARY
+        echo "**SHA-384 Hash:** \`${INTEGRITY_HASH}\`" >> $GITHUB_STEP_SUMMARY
+        echo "**CDN URL:** https://cdn.survai.app/widget/${VERSION}/survai-widget.js" >> $GITHUB_STEP_SUMMARY
+        echo "**Git Tag:** \`widget-v${VERSION}\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📋 Embed Snippet" >> $GITHUB_STEP_SUMMARY
+        echo '```html' >> $GITHUB_STEP_SUMMARY
+        echo '<script src="https://cdn.survai.app/widget/'${VERSION}'/survai-widget.js"' >> $GITHUB_STEP_SUMMARY
+        echo '        integrity="sha384-'${INTEGRITY_HASH}'"' >> $GITHUB_STEP_SUMMARY
+        echo '        crossorigin="anonymous"></script>' >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **Deployment completed successfully!**" >> $GITHUB_STEP_SUMMARY

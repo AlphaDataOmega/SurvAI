@@ -1,0 +1,132 @@
+version: '3.8'
+
+services:
+  # ==============================================
+  # PostgreSQL Database
+  # ==============================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: survai_postgres
+    environment:
+      POSTGRES_DB: survai_dev
+      POSTGRES_USER: survai_user
+      POSTGRES_PASSWORD: survai_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U survai_user -d survai_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - survai_network
+
+  # ==============================================
+  # Redis Cache
+  # ==============================================
+  redis:
+    image: redis:7-alpine
+    container_name: survai_redis
+    command: redis-server --appendonly yes --requirepass survai_password
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - survai_network
+
+  # ==============================================
+  # Database Management UI - pgweb
+  # ==============================================
+  pgweb:
+    image: sosedoff/pgweb:latest
+    container_name: survai_pgweb
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGWEB_DATABASE_URL: "postgres://survai_user:survai_password@postgres:5432/survai_dev?sslmode=disable"
+      PGWEB_AUTH_USER: admin
+      PGWEB_AUTH_PASS: admin
+    ports:
+      - "8085:8081"
+    restart: unless-stopped
+    networks:
+      - survai_network
+
+  # ==============================================
+  # Redis Management UI - Redis Commander
+  # ==============================================
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: survai_redis_commander
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      REDIS_HOSTS: "local:redis:6379:0:survai_password"
+      HTTP_USER: admin
+      HTTP_PASSWORD: admin
+    ports:
+      - "8081:8081"
+    restart: unless-stopped
+    networks:
+      - survai_network
+
+  # ==============================================
+  # Test Database (for running tests)
+  # ==============================================
+  postgres_test:
+    image: postgres:15-alpine
+    container_name: survai_postgres_test
+    environment:
+      POSTGRES_DB: survai_test
+      POSTGRES_USER: survai_user
+      POSTGRES_PASSWORD: survai_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U survai_user -d survai_test"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - survai_network
+    profiles:
+      - test
+
+# ==============================================
+# Named Volumes for Data Persistence
+# ==============================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  postgres_test_data:
+    driver: local
+
+# ==============================================
+# Networks
+# ==============================================
+networks:
+  survai_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

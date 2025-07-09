@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SurvAI Widget - Offline Resilience Test</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8fafc;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #1e40af;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        
+        .status-display {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-family: monospace;
+        }
+        
+        .status-online {
+            color: #059669;
+        }
+        
+        .status-offline {
+            color: #dc2626;
+        }
+        
+        .widget-container {
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 200px;
+            margin-bottom: 20px;
+        }
+        
+        .instructions {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .instructions h3 {
+            color: #92400e;
+            margin-top: 0;
+        }
+        
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin: 5px 0;
+        }
+        
+        .debug-info {
+            background: #1f2937;
+            color: #f9fafb;
+            border-radius: 6px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        
+        .clear-logs {
+            float: right;
+            background: #374151;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .clear-logs:hover {
+            background: #4b5563;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 SurvAI Widget - Offline Resilience Test</h1>
+        
+        <div class="instructions">
+            <h3>Testing Instructions</h3>
+            <ol>
+                <li><strong>Load Widget:</strong> Click "Load Widget" to initialize the widget</li>
+                <li><strong>Test Batching:</strong> Click buttons rapidly to see batching in action</li>
+                <li><strong>Test Offline:</strong> Click "Simulate Offline" then click buttons</li>
+                <li><strong>Test Recovery:</strong> Click "Simulate Online" to see offline events flush</li>
+                <li><strong>Monitor Status:</strong> Watch the status display and debug logs</li>
+            </ol>
+        </div>
+        
+        <div class="test-controls">
+            <button id="loadWidget" class="btn-primary">Load Widget</button>
+            <button id="simulateOffline" class="btn-secondary">Simulate Offline</button>
+            <button id="simulateOnline" class="btn-secondary">Simulate Online</button>
+            <button id="clearStorage" class="btn-danger">Clear Storage</button>
+            <button id="checkStatus" class="btn-secondary">Check Status</button>
+        </div>
+        
+        <div class="status-display" id="statusDisplay">
+            <strong>Status:</strong> <span id="networkStatus">Online</span> | 
+            <strong>Queue:</strong> <span id="queueSize">0</span> events | 
+            <strong>Persisted:</strong> <span id="persistedCount">0</span> events
+        </div>
+        
+        <div class="widget-container" id="survai-widget">
+            <p style="text-align: center; color: #6b7280; margin: 80px 0;">Widget will appear here</p>
+        </div>
+        
+        <div>
+            <h3>Debug Logs <button class="clear-logs" onclick="clearLogs()">Clear Logs</button></h3>
+            <div class="debug-info" id="debugLogs">Logs will appear here...</div>
+        </div>
+    </div>
+
+    <!-- React Dependencies -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- SurvAI Widget -->
+    <script src="../dist/widget/survai-widget.umd.js"></script>
+    
+    <script>
+        let widget = null;
+        let isSimulatingOffline = false;
+        
+        // Debug logging
+        function log(message) {
+            const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+            const logElement = document.getElementById('debugLogs');
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+        
+        function clearLogs() {
+            document.getElementById('debugLogs').textContent = '';
+        }
+        
+        // Status updates
+        function updateStatus() {
+            const statusSpan = document.getElementById('networkStatus');
+            const queueSpan = document.getElementById('queueSize');
+            const persistedSpan = document.getElementById('persistedCount');
+            
+            if (widget && widget.getQueueStatus) {
+                const status = widget.getQueueStatus();
+                queueSpan.textContent = status.queueSize;
+                persistedSpan.textContent = status.persistedCount;
+                
+                if (status.isOnline) {
+                    statusSpan.textContent = 'Online';
+                    statusSpan.className = 'status-online';
+                } else {
+                    statusSpan.textContent = 'Offline';
+                    statusSpan.className = 'status-offline';
+                }
+            } else {
+                statusSpan.textContent = isSimulatingOffline ? 'Offline (Simulated)' : 'Online';
+                statusSpan.className = isSimulatingOffline ? 'status-offline' : 'status-online';
+            }
+        }
+        
+        // Network simulation
+        function simulateOffline() {
+            isSimulatingOffline = true;
+            // Override navigator.onLine
+            Object.defineProperty(navigator, 'onLine', {
+                writable: true,
+                value: false
+            });
+            
+            // Trigger offline event
+            window.dispatchEvent(new Event('offline'));
+            
+            log('🔴 Simulated offline mode - events will be persisted to localStorage');
+            updateStatus();
+            
+            // Update button states
+            document.getElementById('simulateOffline').disabled = true;
+            document.getElementById('simulateOnline').disabled = false;
+        }
+        
+        function simulateOnline() {
+            isSimulatingOffline = false;
+            // Restore navigator.onLine
+            Object.defineProperty(navigator, 'onLine', {
+                writable: true,
+                value: true
+            });
+            
+            // Trigger online event
+            window.dispatchEvent(new Event('online'));
+            
+            log('🟢 Simulated online mode - persisted events will be sent');
+            updateStatus();
+            
+            // Update button states
+            document.getElementById('simulateOffline').disabled = false;
+            document.getElementById('simulateOnline').disabled = true;
+        }
+        
+        // Widget loading
+        async function loadWidget() {
+            try {
+                const container = document.getElementById('survai-widget');
+                container.innerHTML = ''; // Clear previous widget
+                
+                log('📦 Loading widget...');
+                
+                widget = await SurvAIWidget.mount(container, {
+                    surveyId: 'test-survey-123',
+                    apiUrl: 'http://localhost:8000', // Adjust as needed
+                    theme: {
+                        primaryColor: '#3b82f6',
+                        secondaryColor: '#e5e7eb',
+                        borderRadius: '8px',
+                        buttonSize: 'medium'
+                    },
+                    onError: (error) => {
+                        log(`❌ Widget error: ${error.message}`);
+                        console.error('Widget error:', error);
+                    }
+                });
+                
+                log('✅ Widget loaded successfully');
+                
+                // Update button states
+                document.getElementById('loadWidget').disabled = true;
+                document.getElementById('simulateOffline').disabled = false;
+                document.getElementById('simulateOnline').disabled = true;
+                
+                updateStatus();
+                
+            } catch (error) {
+                log(`❌ Failed to load widget: ${error.message}`);
+                console.error('Failed to load widget:', error);
+            }
+        }
+        
+        // Storage management
+        function clearStorage() {
+            localStorage.removeItem('srv_click_queue');
+            log('🗑️ Cleared localStorage');
+            updateStatus();
+        }
+        
+        function checkStatus() {
+            if (widget && widget.getQueueStatus) {
+                const status = widget.getQueueStatus();
+                log(`📊 Queue status: ${status.queueSize} events, ${status.persistedCount} persisted, ${status.isOnline ? 'online' : 'offline'}`);
+            } else {
+                log('📊 Widget not loaded');
+            }
+            
+            // Check localStorage directly
+            const stored = localStorage.getItem('srv_click_queue');
+            if (stored) {
+                try {
+                    const events = JSON.parse(stored);
+                    log(`💾 localStorage: ${events.length} events stored`);
+                } catch (e) {
+                    log('💾 localStorage: Invalid data');
+                }
+            } else {
+                log('💾 localStorage: No events stored');
+            }
+            
+            updateStatus();
+        }
+        
+        // Event listeners
+        document.getElementById('loadWidget').addEventListener('click', loadWidget);
+        document.getElementById('simulateOffline').addEventListener('click', simulateOffline);
+        document.getElementById('simulateOnline').addEventListener('click', simulateOnline);
+        document.getElementById('clearStorage').addEventListener('click', clearStorage);
+        document.getElementById('checkStatus').addEventListener('click', checkStatus);
+        
+        // Network event listeners
+        window.addEventListener('online', () => {
+            log('🌐 Network: Online event fired');
+            updateStatus();
+        });
+        
+        window.addEventListener('offline', () => {
+            log('🌐 Network: Offline event fired');
+            updateStatus();
+        });
+        
+        // Monitor localStorage changes
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'srv_click_queue') {
+                log(`💾 localStorage changed: ${e.newValue ? 'events stored' : 'events cleared'}`);
+                updateStatus();
+            }
+        });
+        
+        // Initial setup
+        log('🚀 Offline resilience test page loaded');
+        updateStatus();
+        
+        // Auto-update status every 2 seconds
+        setInterval(updateStatus, 2000);
+        
+        // Simulate click events for testing
+        function simulateClicks(count = 5) {
+            log(`🖱️ Simulating ${count} clicks...`);
+            // This would normally be handled by the widget's button clicks
+            // For testing, we can trigger events programmatically if needed
+        }
+        
+        // Add to global scope for manual testing
+        window.testFunctions = {
+            simulateClicks,
+            checkStatus,
+            clearStorage,
+            log
+        };
+    </script>
+</body>
+</html>

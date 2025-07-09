@@ -1,0 +1,77 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Build outputs
+dist/
+build/
+*/dist/
+*/build/
+
+# Coverage reports
+coverage/
+*/coverage/
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.*
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Package manager files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Generated files
+*.generated.*
+*.d.ts
+
+# Documentation generated files
+docs/api/
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+
+# Git files
+.git/
+.gitignore
+
+# Test snapshots
+**/__snapshots__/
+
+# Prisma generated files
+**/node_modules/.prisma/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
+
+# Binary files
+*.pdf
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.svg
+*.ico
+
+# License files
+LICENSE*
+CHANGELOG*

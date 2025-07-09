@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SurvAI Widget - Remote Configuration Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1, h2, h3 {
+            color: #333;
+        }
+        
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .demo-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .demo-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .demo-description {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        .widget-container {
+            min-height: 250px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            margin-bottom: 15px;
+        }
+        
+        .controls {
+            background: white;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .control-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            align-items: end;
+        }
+        
+        .control-group {
+            flex: 1;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #3182ce;
+        }
+        
+        button {
+            background: #3182ce;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            margin-right: 10px;
+            margin-bottom: 5px;
+        }
+        
+        button:hover {
+            background: #2c5282;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        button.secondary {
+            background: #6b7280;
+        }
+        
+        button.secondary:hover {
+            background: #4b5563;
+        }
+        
+        .status {
+            padding: 12px;
+            margin-top: 15px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+        
+        .config-preview {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        
+        .info-box {
+            background: #e7f3ff;
+            border: 1px solid #b6d7ff;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        
+        .info-box h4 {
+            margin: 0 0 8px 0;
+            color: #0056b3;
+        }
+        
+        .info-box p {
+            margin: 0;
+            font-size: 14px;
+            color: #004085;
+        }
+        
+        .cors-info {
+            background: #fff2cc;
+            border: 1px solid #d6b656;
+            color: #664d03;
+        }
+        
+        .cors-info h4 {
+            color: #664d03;
+        }
+        
+        .endpoint-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .endpoint-list li {
+            background: #f8f9fa;
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        
+        @media (max-width: 768px) {
+            .demo-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .control-row {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .controls, .demo-card {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SurvAI Widget - Remote Configuration Demo</h1>
+        <p>This page demonstrates remote configuration loading capabilities, including CORS handling, graceful degradation, and configuration merging precedence.</p>
+        
+        <div class="info-box">
+            <h4>📡 How Remote Configuration Works</h4>
+            <p>The widget can load configuration from a remote URL, merge it with inline options (inline takes precedence), and gracefully handle failures. This enables centralized configuration management and easy white-label deployments.</p>
+        </div>
+        
+        <div class="cors-info info-box">
+            <h4>⚠️ CORS Requirements</h4>
+            <p>Remote configuration requires proper CORS headers. For this demo, we simulate remote configs with local data. In production, ensure your config endpoint returns <code>Access-Control-Allow-Origin</code> headers.</p>
+        </div>
+        
+        <!-- Configuration Builder -->
+        <div class="controls">
+            <h2>Remote Configuration Builder</h2>
+            <div class="control-row">
+                <div class="control-group">
+                    <label for="configUrl">Configuration URL</label>
+                    <select id="configUrl">
+                        <option value="">No remote config</option>
+                        <option value="demo://corporate-theme">Corporate Theme Config</option>
+                        <option value="demo://eco-theme">Eco-Friendly Theme Config</option>
+                        <option value="demo://dark-theme">Dark Mode Theme Config</option>
+                        <option value="demo://error-simulation">Error Simulation</option>
+                        <option value="demo://timeout-simulation">Timeout Simulation</option>
+                        <option value="custom">Custom JSON Config</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="partnerId">Override Partner ID</label>
+                    <input type="text" id="partnerId" placeholder="Leave empty to use remote config">
+                </div>
+            </div>
+            
+            <div class="control-group" id="customConfigGroup" style="display: none;">
+                <label for="customConfig">Custom JSON Configuration</label>
+                <textarea id="customConfig" placeholder='{\n  "theme": {\n    "primaryColor": "#ff0000",\n    "buttonSize": "large"\n  },\n  "partnerId": "custom-partner"\n}'></textarea>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <button onclick="testRemoteConfig()">Test Remote Configuration</button>
+                <button onclick="testConfigMerging()" class="secondary">Test Config Merging</button>
+                <button onclick="testErrorHandling()" class="secondary">Test Error Handling</button>
+                <button onclick="clearAllWidgets()">Clear All Widgets</button>
+            </div>
+            
+            <div id="testStatus" class="status" style="display: none;"></div>
+            
+            <div id="configPreview" class="config-preview" style="display: none;"></div>
+        </div>
+        
+        <!-- Demo Results -->
+        <div class="demo-grid">
+            <!-- Basic Remote Config -->
+            <div class="demo-card">
+                <div class="demo-title">Basic Remote Configuration</div>
+                <div class="demo-description">Widget loads configuration from a remote URL</div>
+                <div class="widget-container">
+                    <div id="widget-basic" class="loading">Ready for testing</div>
+                </div>
+                <div id="status-basic" class="status" style="display: none;"></div>
+            </div>
+            
+            <!-- Configuration Merging -->
+            <div class="demo-card">
+                <div class="demo-title">Configuration Merging</div>
+                <div class="demo-description">Remote config merged with inline options (inline takes precedence)</div>
+                <div class="widget-container">
+                    <div id="widget-merging" class="loading">Ready for testing</div>
+                </div>
+                <div id="status-merging" class="status" style="display: none;"></div>
+            </div>
+            
+            <!-- Error Handling -->
+            <div class="demo-card">
+                <div class="demo-title">Error Handling</div>
+                <div class="demo-description">Graceful degradation when remote config fails</div>
+                <div class="widget-container">
+                    <div id="widget-error" class="loading">Ready for testing</div>
+                </div>
+                <div id="status-error" class="status" style="display: none;"></div>
+            </div>
+            
+            <!-- Fallback Configuration -->
+            <div class="demo-card">
+                <div class="demo-title">Fallback to Inline Config</div>
+                <div class="demo-description">Shows widget still works when remote config is unavailable</div>
+                <div class="widget-container">
+                    <div id="widget-fallback" class="loading">Ready for testing</div>
+                </div>
+                <div id="status-fallback" class="status" style="display: none;"></div>
+            </div>
+        </div>
+        
+        <!-- Information Sections -->
+        <h2>Configuration Examples</h2>
+        
+        <h3>Predefined Remote Configurations</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+            <div class="config-preview">
+                <strong>Corporate Theme:</strong>
+{
+  "theme": {
+    "primaryColor": "#1e40af",
+    "secondaryColor": "#dbeafe",
+    "accentColor": "#3b82f6",
+    "backgroundColor": "#f8fafc",
+    "buttonSize": "large",
+    "spacing": "normal",
+    "shadows": true
+  },
+  "partnerId": "corporate-partner-456"
+}
+            </div>
+            
+            <div class="config-preview">
+                <strong>Eco-Friendly Theme:</strong>
+{
+  "theme": {
+    "primaryColor": "#059669",
+    "secondaryColor": "#d1fae5",
+    "accentColor": "#10b981",
+    "textColor": "#064e3b",
+    "backgroundColor": "#f0fdf4",
+    "buttonSize": "small",
+    "spacing": "compact"
+  },
+  "partnerId": "eco-partner-789"
+}
+            </div>
+        </div>
+        
+        <div class="info-box">
+            <h4>🔧 Configuration Merging Rules</h4>
+            <p>When both remote and inline configurations are provided:</p>
+            <ul>
+                <li><strong>Inline options override remote config</strong> - Perfect for per-deployment customization</li>
+                <li><strong>Remote config provides defaults</strong> - Enables centralized configuration management</li>
+                <li><strong>Graceful failure</strong> - Widget continues with inline config if remote fails</li>
+                <li><strong>Security filtering</strong> - Dangerous properties like <code>configUrl</code> and <code>onError</code> are stripped from remote configs</li>
+            </ul>
+        </div>
+        
+        <h3>API Endpoints with Partner Attribution</h3>
+        <p>When a <code>partnerId</code> is configured, it's automatically included in all API calls:</p>
+        <ul class="endpoint-list">
+            <li>POST /api/sessions?surveyId=123&partnerId=partner-abc</li>
+            <li>POST /api/questions/123/next?partnerId=partner-abc</li>
+            <li>POST /api/track/click?partnerId=partner-abc</li>
+        </ul>
+    </div>
+
+    <!-- React Dependencies -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Mock Remote Configuration Server -->
+    <script>
+        // Simulate remote configuration endpoints
+        const mockConfigs = {
+            'demo://corporate-theme': {
+                theme: {
+                    primaryColor: '#1e40af',
+                    secondaryColor: '#dbeafe',
+                    accentColor: '#3b82f6',
+                    textColor: '#1e3a8a',
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '0.75rem',
+                    buttonSize: 'large',
+                    spacing: 'normal',
+                    shadows: true,
+                    transitions: true
+                },
+                partnerId: 'corporate-partner-456'
+            },
+            'demo://eco-theme': {
+                theme: {
+                    primaryColor: '#059669',
+                    secondaryColor: '#d1fae5',
+                    accentColor: '#10b981',
+                    textColor: '#064e3b',
+                    backgroundColor: '#f0fdf4',
+                    borderRadius: '0.25rem',
+                    buttonSize: 'small',
+                    spacing: 'compact',
+                    shadows: true,
+                    transitions: true
+                },
+                partnerId: 'eco-partner-789'
+            },
+            'demo://dark-theme': {
+                theme: {
+                    primaryColor: '#3b82f6',
+                    secondaryColor: '#374151',
+                    accentColor: '#06b6d4',
+                    textColor: '#f9fafb',
+                    backgroundColor: '#111827',
+                    borderRadius: '0.75rem',
+                    buttonSize: 'medium',
+                    spacing: 'normal',
+                    shadows: false,
+                    transitions: true
+                },
+                partnerId: 'dark-partner-321'
+            }
+        };
+        
+        // Mock fetch for demo purposes
+        const originalFetch = window.fetch;
+        window.fetch = async function(url, options) {
+            console.log('Mock fetch called:', url, options);
+            
+            // Simulate network delay
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            if (url === 'demo://error-simulation') {
+                throw new Error('Network error - could not reach configuration server');
+            }
+            
+            if (url === 'demo://timeout-simulation') {
+                // Simulate timeout
+                await new Promise(resolve => setTimeout(resolve, 6000));
+                throw new Error('Request timeout');
+            }
+            
+            if (url.startsWith('demo://')) {
+                const config = mockConfigs[url];
+                if (config) {
+                    return {
+                        ok: true,
+                        headers: {
+                            get: (name) => name === 'content-type' ? 'application/json' : null
+                        },
+                        json: async () => config
+                    };
+                } else {
+                    return {
+                        ok: false,
+                        status: 404,
+                        statusText: 'Not Found'
+                    };
+                }
+            }
+            
+            // Fallback to original fetch for real requests
+            if (originalFetch) {
+                return originalFetch(url, options);
+            }
+            
+            throw new Error('Fetch not available');
+        };
+    </script>
+    
+    <!-- SurvAI Widget (simulated) -->
+    <script>
+        // Enhanced mock widget with remote config support
+        window.SurvAIWidget = {
+            version: '1.1.0',
+            mount: async function(container, options) {
+                console.log('Mounting widget with options:', options);
+                
+                let finalOptions = { ...options };
+                let configSource = 'inline';
+                
+                // Load remote configuration if provided
+                if (options.configUrl) {
+                    try {
+                        console.log('Loading remote config from:', options.configUrl);
+                        const response = await fetch(options.configUrl);
+                        
+                        if (response.ok) {
+                            const remoteConfig = await response.json();
+                            console.log('Remote config loaded:', remoteConfig);
+                            
+                            // Merge with inline options taking precedence
+                            finalOptions = { ...remoteConfig, ...options };
+                            delete finalOptions.configUrl; // Security: don't allow recursive configUrl
+                            configSource = 'remote + inline';
+                        } else {
+                            console.warn('Remote config failed:', response.status, response.statusText);
+                            configSource = 'inline (remote failed)';
+                        }
+                    } catch (error) {
+                        console.warn('Remote config error:', error);
+                        configSource = 'inline (remote error)';
+                    }
+                }
+                
+                // Simulate loading delay
+                await new Promise(resolve => setTimeout(resolve, 800));
+                
+                // Create mock widget UI
+                const theme = finalOptions.theme || {};
+                const partnerId = finalOptions.partnerId;
+                
+                container.innerHTML = `
+                    <div style="
+                        font-family: ${theme.fontFamily || 'system-ui, sans-serif'};
+                        background: ${theme.backgroundColor || '#ffffff'};
+                        border-radius: ${theme.borderRadius || '0.5rem'};
+                        padding: ${theme.spacing === 'compact' ? '0.75rem' : theme.spacing === 'spacious' ? '1.5rem' : '1rem'};
+                        box-shadow: ${theme.shadows !== false ? '0 4px 6px rgba(0, 0, 0, 0.1)' : 'none'};
+                        transition: ${theme.transitions !== false ? 'all 0.2s ease' : 'none'};
+                        max-width: 100%;
+                    ">
+                        <div style="
+                            font-size: 0.7rem;
+                            color: ${theme.accentColor || '#38a169'};
+                            font-weight: 600;
+                            margin-bottom: 0.5rem;
+                            text-transform: uppercase;
+                            letter-spacing: 0.05em;
+                        ">Config: ${configSource}</div>
+                        <h3 style="
+                            color: ${theme.textColor || '#1a202c'};
+                            margin: 0 0 0.5rem 0;
+                            font-size: 1.25rem;
+                        ">Remote Configuration Demo</h3>
+                        <p style="
+                            color: ${theme.textColor || '#1a202c'};
+                            opacity: 0.8;
+                            margin: 0 0 1rem 0;
+                            font-size: 0.9rem;
+                        ">This widget was configured ${configSource.includes('remote') ? 'remotely' : 'inline only'}</p>
+                        ${partnerId ? `<p style="
+                            color: ${theme.accentColor || '#38a169'};
+                            font-size: 0.75rem;
+                            margin: 0 0 1rem 0;
+                            font-weight: 600;
+                            padding: 0.25rem 0.5rem;
+                            background: ${theme.secondaryColor || '#e2e8f0'};
+                            border-radius: ${theme.borderRadius || '0.5rem'};
+                            display: inline-block;
+                        ">Partner: ${partnerId}</p>` : ''}
+                        <button style="
+                            background: ${theme.primaryColor || '#3182ce'};
+                            color: white;
+                            border: none;
+                            padding: ${
+                                theme.buttonSize === 'small' ? '0.5rem 0.75rem' :
+                                theme.buttonSize === 'large' ? '1rem 1.5rem' :
+                                '0.75rem 1rem'
+                            };
+                            font-size: ${
+                                theme.buttonSize === 'small' ? '0.875rem' :
+                                theme.buttonSize === 'large' ? '1.125rem' :
+                                '1rem'
+                            };
+                            border-radius: ${theme.borderRadius || '0.5rem'};
+                            margin-right: 0.5rem;
+                            cursor: pointer;
+                            transition: ${theme.transitions !== false ? 'all 0.2s ease' : 'none'};
+                            box-shadow: ${theme.shadows !== false ? '0 2px 4px rgba(0, 0, 0, 0.1)' : 'none'};
+                        " onmouseover="this.style.transform='translateY(-1px)';" onmouseout="this.style.transform='translateY(0)';">
+                            Continue Survey
+                        </button>
+                        <button style="
+                            background: ${theme.secondaryColor || '#e2e8f0'};
+                            color: ${theme.primaryColor || '#3182ce'};
+                            border: 2px solid ${theme.primaryColor || '#3182ce'};
+                            padding: ${
+                                theme.buttonSize === 'small' ? '0.5rem 0.75rem' :
+                                theme.buttonSize === 'large' ? '1rem 1.5rem' :
+                                '0.75rem 1rem'
+                            };
+                            font-size: ${
+                                theme.buttonSize === 'small' ? '0.875rem' :
+                                theme.buttonSize === 'large' ? '1.125rem' :
+                                '1rem'
+                            };
+                            border-radius: ${theme.borderRadius || '0.5rem'};
+                            cursor: pointer;
+                            transition: ${theme.transitions !== false ? 'all 0.2s ease' : 'none'};
+                        ">
+                            Skip
+                        </button>
+                    </div>
+                `;
+                
+                return {
+                    unmount: () => {
+                        container.innerHTML = '<div class="loading">Widget unmounted</div>';
+                    },
+                    getStatus: () => 'ready',
+                    getConfig: () => finalOptions,
+                    getConfigSource: () => configSource
+                };
+            }
+        };
+    </script>
+
+    <script>
+        let widgets = {};
+        
+        // Update custom config visibility
+        document.getElementById('configUrl').addEventListener('change', function() {
+            const customGroup = document.getElementById('customConfigGroup');
+            customGroup.style.display = this.value === 'custom' ? 'block' : 'none';
+        });
+        
+        // Show configuration preview
+        function showConfigPreview(config, source) {
+            const preview = document.getElementById('configPreview');
+            preview.textContent = `Configuration Source: ${source}\n\n${JSON.stringify(config, null, 2)}`;
+            preview.style.display = 'block';
+        }
+        
+        // Show status message
+        function showStatus(elementId, type, message) {
+            const status = document.getElementById(elementId);
+            status.className = `status ${type}`;
+            status.textContent = message;
+            status.style.display = 'block';
+        }
+        
+        // Test basic remote configuration
+        async function testRemoteConfig() {
+            const configUrl = document.getElementById('configUrl').value;
+            const partnerId = document.getElementById('partnerId').value.trim();
+            
+            if (!configUrl || configUrl === 'custom') {
+                showStatus('testStatus', 'warning', 'Please select a predefined configuration URL');
+                return;
+            }
+            
+            const container = document.getElementById('widget-basic');
+            
+            try {
+                // Clear previous widget
+                if (widgets.basic) {
+                    widgets.basic.unmount();
+                }
+                
+                container.innerHTML = '<div class="loading">Loading remote configuration...</div>';
+                showStatus('testStatus', 'success', 'Loading remote configuration...');
+                
+                const options = {
+                    surveyId: 'demo-survey-remote',
+                    configUrl: configUrl
+                };
+                
+                if (partnerId) {
+                    options.partnerId = partnerId;
+                }
+                
+                if (configUrl === 'custom') {
+                    try {
+                        const customConfig = JSON.parse(document.getElementById('customConfig').value);
+                        // For custom config, we simulate it by directly passing the parsed config
+                        widgets.basic = await SurvAIWidget.mount(container, {
+                            ...customConfig,
+                            surveyId: 'demo-survey-custom'
+                        });
+                        showConfigPreview(customConfig, 'custom');
+                    } catch (parseError) {
+                        throw new Error('Invalid JSON in custom configuration');
+                    }
+                } else {
+                    widgets.basic = await SurvAIWidget.mount(container, options);
+                    showConfigPreview(widgets.basic.getConfig(), widgets.basic.getConfigSource());
+                }
+                
+                showStatus('testStatus', 'success', `Remote configuration loaded successfully! Source: ${widgets.basic.getConfigSource()}`);
+                showStatus('status-basic', 'success', `Configuration loaded from: ${widgets.basic.getConfigSource()}`);
+                
+            } catch (error) {
+                console.error('Remote config test failed:', error);
+                container.innerHTML = `<div style="color: red; padding: 1rem;">Error: ${error.message}</div>`;
+                showStatus('testStatus', 'error', `Failed to load remote configuration: ${error.message}`);
+                showStatus('status-basic', 'error', error.message);
+            }
+        }
+        
+        // Test configuration merging
+        async function testConfigMerging() {
+            const container = document.getElementById('widget-merging');
+            
+            try {
+                // Clear previous widget
+                if (widgets.merging) {
+                    widgets.merging.unmount();
+                }
+                
+                container.innerHTML = '<div class="loading">Testing configuration merging...</div>';
+                
+                // Use remote config but override some values inline
+                const options = {
+                    surveyId: 'demo-survey-merging',
+                    configUrl: 'demo://corporate-theme', // Remote config
+                    theme: {
+                        primaryColor: '#dc2626', // Override remote primary color
+                        buttonSize: 'small'      // Override remote button size
+                    },
+                    partnerId: 'inline-override-partner' // Override remote partner ID
+                };
+                
+                widgets.merging = await SurvAIWidget.mount(container, options);
+                
+                const finalConfig = widgets.merging.getConfig();
+                showConfigPreview(finalConfig, widgets.merging.getConfigSource());
+                
+                showStatus('status-merging', 'success', 
+                    `Configuration merged! Remote corporate theme with red primary color and small buttons (inline overrides)`);
+                
+            } catch (error) {
+                console.error('Config merging test failed:', error);
+                container.innerHTML = `<div style="color: red; padding: 1rem;">Error: ${error.message}</div>`;
+                showStatus('status-merging', 'error', error.message);
+            }
+        }
+        
+        // Test error handling
+        async function testErrorHandling() {
+            const container = document.getElementById('widget-error');
+            
+            try {
+                // Clear previous widget
+                if (widgets.error) {
+                    widgets.error.unmount();
+                }
+                
+                container.innerHTML = '<div class="loading">Testing error handling...</div>';
+                
+                // Use a failing remote config URL with good fallback options
+                const options = {
+                    surveyId: 'demo-survey-error',
+                    configUrl: 'demo://error-simulation', // This will fail
+                    theme: {
+                        primaryColor: '#059669',
+                        backgroundColor: '#f0fdf4',
+                        buttonSize: 'medium'
+                    },
+                    partnerId: 'fallback-partner'
+                };
+                
+                widgets.error = await SurvAIWidget.mount(container, options);
+                
+                const finalConfig = widgets.error.getConfig();
+                showConfigPreview(finalConfig, widgets.error.getConfigSource());
+                
+                showStatus('status-error', 'warning', 
+                    `Remote config failed gracefully! Widget continues with inline configuration only.`);
+                
+            } catch (error) {
+                console.error('Error handling test failed:', error);
+                container.innerHTML = `<div style="color: red; padding: 1rem;">Error: ${error.message}</div>`;
+                showStatus('status-error', 'error', error.message);
+            }
+        }
+        
+        // Test fallback configuration
+        async function testFallback() {
+            const container = document.getElementById('widget-fallback');
+            
+            try {
+                // Clear previous widget
+                if (widgets.fallback) {
+                    widgets.fallback.unmount();
+                }
+                
+                container.innerHTML = '<div class="loading">Testing fallback configuration...</div>';
+                
+                // No remote config, just inline
+                const options = {
+                    surveyId: 'demo-survey-fallback',
+                    theme: {
+                        primaryColor: '#7c3aed',
+                        secondaryColor: '#e5e7eb',
+                        accentColor: '#8b5cf6',
+                        backgroundColor: '#faf7ff',
+                        buttonSize: 'large',
+                        spacing: 'spacious'
+                    },
+                    partnerId: 'inline-only-partner'
+                };
+                
+                widgets.fallback = await SurvAIWidget.mount(container, options);
+                
+                const finalConfig = widgets.fallback.getConfig();
+                showConfigPreview(finalConfig, widgets.fallback.getConfigSource());
+                
+                showStatus('status-fallback', 'success', 
+                    `Widget mounted successfully with inline configuration only.`);
+                
+            } catch (error) {
+                console.error('Fallback test failed:', error);
+                container.innerHTML = `<div style="color: red; padding: 1rem;">Error: ${error.message}</div>`;
+                showStatus('status-fallback', 'error', error.message);
+            }
+        }
+        
+        // Clear all widgets
+        function clearAllWidgets() {
+            Object.values(widgets).forEach(widget => {
+                if (widget && widget.unmount) {
+                    widget.unmount();
+                }
+            });
+            widgets = {};
+            
+            // Reset containers
+            ['basic', 'merging', 'error', 'fallback'].forEach(name => {
+                document.getElementById(`widget-${name}`).innerHTML = '<div class="loading">Ready for testing</div>';
+                document.getElementById(`status-${name}`).style.display = 'none';
+            });
+            
+            document.getElementById('testStatus').style.display = 'none';
+            document.getElementById('configPreview').style.display = 'none';
+        }
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('SurvAI Widget Remote Configuration Demo - v1.1.0');
+            console.log('Widget version:', SurvAIWidget.version);
+            
+            // Auto-run fallback test
+            setTimeout(testFallback, 1000);
+        });
+    </script>
+</body>
+</html>

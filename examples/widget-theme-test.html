@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SurvAI Widget - Theme Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1, h2 {
+            color: #333;
+        }
+        
+        .theme-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .theme-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .theme-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .theme-description {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        .widget-container {
+            min-height: 300px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .controls {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3182ce;
+        }
+        
+        button {
+            background: #3182ce;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            margin-right: 10px;
+        }
+        
+        button:hover {
+            background: #2c5282;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+        
+        @media (max-width: 768px) {
+            .theme-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SurvAI Widget - Theme Showcase</h1>
+        <p>This page demonstrates the enhanced theming capabilities of the SurvAI embeddable widget, including CSS variables, partner attribution, and responsive design.</p>
+        
+        <!-- Interactive Theme Builder -->
+        <div class="controls">
+            <h2>Interactive Theme Builder</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                <div class="control-group">
+                    <label for="primaryColor">Primary Color</label>
+                    <input type="color" id="primaryColor" value="#3182ce">
+                </div>
+                <div class="control-group">
+                    <label for="secondaryColor">Secondary Color</label>
+                    <input type="color" id="secondaryColor" value="#e2e8f0">
+                </div>
+                <div class="control-group">
+                    <label for="accentColor">Accent Color</label>
+                    <input type="color" id="accentColor" value="#38a169">
+                </div>
+                <div class="control-group">
+                    <label for="textColor">Text Color</label>
+                    <input type="color" id="textColor" value="#1a202c">
+                </div>
+                <div class="control-group">
+                    <label for="backgroundColor">Background Color</label>
+                    <input type="color" id="backgroundColor" value="#ffffff">
+                </div>
+                <div class="control-group">
+                    <label for="buttonSize">Button Size</label>
+                    <select id="buttonSize">
+                        <option value="small">Small</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="large">Large</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="spacing">Spacing</label>
+                    <select id="spacing">
+                        <option value="compact">Compact</option>
+                        <option value="normal" selected>Normal</option>
+                        <option value="spacious">Spacious</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="partnerId">Partner ID</label>
+                    <input type="text" id="partnerId" placeholder="Enter partner ID" value="demo-partner-123">
+                </div>
+            </div>
+            <div style="margin-top: 15px;">
+                <label>
+                    <input type="checkbox" id="shadows" checked> Enable Shadows
+                </label>
+                &nbsp;&nbsp;
+                <label>
+                    <input type="checkbox" id="transitions" checked> Enable Transitions
+                </label>
+            </div>
+            <div style="margin-top: 15px;">
+                <button onclick="applyCustomTheme()">Apply Custom Theme</button>
+                <button onclick="resetThemes()">Reset All Widgets</button>
+            </div>
+            <div id="customStatus" class="status" style="display: none;"></div>
+        </div>
+        
+        <!-- Custom Theme Result -->
+        <div class="theme-card">
+            <div class="theme-title">Custom Theme</div>
+            <div class="theme-description">Your custom theme configuration will appear here</div>
+            <div class="widget-container">
+                <div id="widget-custom" class="loading">Click "Apply Custom Theme" to mount widget</div>
+            </div>
+        </div>
+        
+        <!-- Predefined Theme Examples -->
+        <h2>Predefined Theme Examples</h2>
+        <div class="theme-grid">
+            <!-- Default Theme -->
+            <div class="theme-card">
+                <div class="theme-title">Default Theme</div>
+                <div class="theme-description">Standard SurvAI branding with balanced colors and normal spacing</div>
+                <div class="widget-container">
+                    <div id="widget-default" class="loading">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- Corporate Blue Theme -->
+            <div class="theme-card">
+                <div class="theme-title">Corporate Blue</div>
+                <div class="theme-description">Professional theme suitable for business applications</div>
+                <div class="widget-container">
+                    <div id="widget-corporate" class="loading">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- Nature Green Theme -->
+            <div class="theme-card">
+                <div class="theme-title">Nature Green</div>
+                <div class="theme-description">Eco-friendly theme with compact spacing and natural colors</div>
+                <div class="widget-container">
+                    <div id="widget-nature" class="loading">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- Dark Mode Theme -->
+            <div class="theme-card">
+                <div class="theme-title">Dark Mode</div>
+                <div class="theme-description">Modern dark theme with minimal shadows and smooth transitions</div>
+                <div class="widget-container">
+                    <div id="widget-dark" class="loading">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- Vibrant Orange Theme -->
+            <div class="theme-card">
+                <div class="theme-title">Vibrant Orange</div>
+                <div class="theme-description">High-energy theme with large buttons and spacious layout</div>
+                <div class="widget-container">
+                    <div id="widget-vibrant" class="loading">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- Minimal Theme -->
+            <div class="theme-card">
+                <div class="theme-title">Minimal</div>
+                <div class="theme-description">Clean and simple design with no shadows or transitions</div>
+                <div class="widget-container">
+                    <div id="widget-minimal" class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- React Dependencies -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- SurvAI Widget (simulated - in production this would be the actual widget bundle) -->
+    <script>
+        // Simulate the SurvAI Widget for demo purposes
+        window.SurvAIWidget = {
+            version: '1.1.0',
+            mount: async function(container, options) {
+                console.log('Mounting widget with options:', options);
+                
+                // Simulate loading delay
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Create mock widget UI
+                const theme = options.theme || {};
+                const partnerId = options.partnerId;
+                
+                container.innerHTML = `
+                    <div style="
+                        font-family: ${theme.fontFamily || 'system-ui, sans-serif'};
+                        background: ${theme.backgroundColor || '#ffffff'};
+                        border-radius: ${theme.borderRadius || '0.5rem'};
+                        padding: ${theme.spacing === 'compact' ? '0.75rem' : theme.spacing === 'spacious' ? '1.5rem' : '1rem'};
+                        box-shadow: ${theme.shadows !== false ? '0 4px 6px rgba(0, 0, 0, 0.1)' : 'none'};
+                        transition: ${theme.transitions !== false ? 'all 0.2s ease' : 'none'};
+                        max-width: 100%;
+                    ">
+                        <h3 style="
+                            color: ${theme.textColor || '#1a202c'};
+                            margin: 0 0 0.5rem 0;
+                            font-size: 1.25rem;
+                        ">Would you like to try our product?</h3>
+                        <p style="
+                            color: ${theme.textColor || '#1a202c'};
+                            opacity: 0.8;
+                            margin: 0 0 1rem 0;
+                            font-size: 0.9rem;
+                        ">Help us understand your needs better</p>
+                        ${partnerId ? `<p style="
+                            color: ${theme.accentColor || '#38a169'};
+                            font-size: 0.75rem;
+                            margin: 0 0 1rem 0;
+                            font-weight: 600;
+                        ">Partner: ${partnerId}</p>` : ''}
+                        <button style="
+                            background: ${theme.primaryColor || '#3182ce'};
+                            color: white;
+                            border: none;
+                            padding: ${
+                                theme.buttonSize === 'small' ? '0.5rem 0.75rem' :
+                                theme.buttonSize === 'large' ? '1rem 1.5rem' :
+                                '0.75rem 1rem'
+                            };
+                            font-size: ${
+                                theme.buttonSize === 'small' ? '0.875rem' :
+                                theme.buttonSize === 'large' ? '1.125rem' :
+                                '1rem'
+                            };
+                            border-radius: ${theme.borderRadius || '0.5rem'};
+                            margin-right: 0.5rem;
+                            cursor: pointer;
+                            transition: ${theme.transitions !== false ? 'all 0.2s ease' : 'none'};
+                            box-shadow: ${theme.shadows !== false ? '0 2px 4px rgba(0, 0, 0, 0.1)' : 'none'};
+                        " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='${theme.shadows !== false ? '0 4px 8px rgba(0, 0, 0, 0.15)' : 'none'}';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='${theme.shadows !== false ? '0 2px 4px rgba(0, 0, 0, 0.1)' : 'none'}';">
+                            Yes, I'm interested
+                        </button>
+                        <button style="
+                            background: ${theme.secondaryColor || '#e2e8f0'};
+                            color: ${theme.primaryColor || '#3182ce'};
+                            border: 2px solid ${theme.primaryColor || '#3182ce'};
+                            padding: ${
+                                theme.buttonSize === 'small' ? '0.5rem 0.75rem' :
+                                theme.buttonSize === 'large' ? '1rem 1.5rem' :
+                                '0.75rem 1rem'
+                            };
+                            font-size: ${
+                                theme.buttonSize === 'small' ? '0.875rem' :
+                                theme.buttonSize === 'large' ? '1.125rem' :
+                                '1rem'
+                            };
+                            border-radius: ${theme.borderRadius || '0.5rem'};
+                            cursor: pointer;
+                            transition: ${theme.transitions !== false ? 'all 0.2s ease' : 'none'};
+                        ">
+                            Maybe later
+                        </button>
+                    </div>
+                `;
+                
+                return {
+                    unmount: () => {
+                        container.innerHTML = '<div class="loading">Widget unmounted</div>';
+                    },
+                    getStatus: () => 'ready'
+                };
+            },
+            mountSync: function(container, options) {
+                // Synchronous version - just call mount without await
+                this.mount(container, options);
+            }
+        };
+    </script>
+
+    <script>
+        let widgets = {};
+        
+        // Theme configurations
+        const themes = {
+            default: {
+                partnerId: 'default-partner'
+            },
+            corporate: {
+                primaryColor: '#1e40af',
+                secondaryColor: '#dbeafe',
+                accentColor: '#3b82f6',
+                textColor: '#1e3a8a',
+                backgroundColor: '#f8fafc',
+                borderRadius: '0.75rem',
+                buttonSize: 'large',
+                spacing: 'normal',
+                shadows: true,
+                transitions: true,
+                partnerId: 'corporate-partner-456'
+            },
+            nature: {
+                primaryColor: '#059669',
+                secondaryColor: '#d1fae5',
+                accentColor: '#10b981',
+                textColor: '#064e3b',
+                backgroundColor: '#f0fdf4',
+                borderRadius: '0.25rem',
+                buttonSize: 'small',
+                spacing: 'compact',
+                shadows: true,
+                transitions: true,
+                partnerId: 'eco-partner-789'
+            },
+            dark: {
+                primaryColor: '#3b82f6',
+                secondaryColor: '#374151',
+                accentColor: '#06b6d4',
+                textColor: '#f9fafb',
+                backgroundColor: '#111827',
+                borderRadius: '0.75rem',
+                buttonSize: 'medium',
+                spacing: 'normal',
+                shadows: false,
+                transitions: true,
+                partnerId: 'dark-partner-321'
+            },
+            vibrant: {
+                primaryColor: '#ea580c',
+                secondaryColor: '#fed7aa',
+                accentColor: '#f97316',
+                textColor: '#9a3412',
+                backgroundColor: '#fff7ed',
+                borderRadius: '1rem',
+                buttonSize: 'large',
+                spacing: 'spacious',
+                shadows: true,
+                transitions: true,
+                partnerId: 'vibrant-partner-654'
+            },
+            minimal: {
+                primaryColor: '#6b7280',
+                secondaryColor: '#f3f4f6',
+                accentColor: '#4b5563',
+                textColor: '#374151',
+                backgroundColor: '#ffffff',
+                borderRadius: '0.125rem',
+                buttonSize: 'medium',
+                spacing: 'normal',
+                shadows: false,
+                transitions: false,
+                partnerId: 'minimal-partner-987'
+            }
+        };
+        
+        // Mount all predefined themes
+        async function mountAllThemes() {
+            for (const [themeName, theme] of Object.entries(themes)) {
+                try {
+                    const container = document.getElementById(`widget-${themeName}`);
+                    if (container) {
+                        widgets[themeName] = await SurvAIWidget.mount(container, {
+                            surveyId: `demo-survey-${themeName}`,
+                            theme: theme,
+                            partnerId: theme.partnerId
+                        });
+                    }
+                } catch (error) {
+                    console.error(`Failed to mount ${themeName} theme:`, error);
+                    const container = document.getElementById(`widget-${themeName}`);
+                    if (container) {
+                        container.innerHTML = `<div style="color: red;">Error: ${error.message}</div>`;
+                    }
+                }
+            }
+        }
+        
+        // Apply custom theme from form
+        async function applyCustomTheme() {
+            const container = document.getElementById('widget-custom');
+            const status = document.getElementById('customStatus');
+            
+            try {
+                // Unmount existing widget
+                if (widgets.custom) {
+                    widgets.custom.unmount();
+                }
+                
+                // Show loading
+                container.innerHTML = '<div class="loading">Applying custom theme...</div>';
+                status.style.display = 'none';
+                
+                // Get form values
+                const theme = {
+                    primaryColor: document.getElementById('primaryColor').value,
+                    secondaryColor: document.getElementById('secondaryColor').value,
+                    accentColor: document.getElementById('accentColor').value,
+                    textColor: document.getElementById('textColor').value,
+                    backgroundColor: document.getElementById('backgroundColor').value,
+                    buttonSize: document.getElementById('buttonSize').value,
+                    spacing: document.getElementById('spacing').value,
+                    shadows: document.getElementById('shadows').checked,
+                    transitions: document.getElementById('transitions').checked
+                };
+                
+                const partnerId = document.getElementById('partnerId').value.trim();
+                
+                // Mount with custom theme
+                widgets.custom = await SurvAIWidget.mount(container, {
+                    surveyId: 'demo-survey-custom',
+                    theme: theme,
+                    partnerId: partnerId || undefined
+                });
+                
+                // Show success status
+                status.className = 'status success';
+                status.textContent = 'Custom theme applied successfully!';
+                status.style.display = 'block';
+                
+            } catch (error) {
+                console.error('Failed to apply custom theme:', error);
+                container.innerHTML = `<div style="color: red;">Error: ${error.message}</div>`;
+                
+                status.className = 'status error';
+                status.textContent = `Failed to apply theme: ${error.message}`;
+                status.style.display = 'block';
+            }
+        }
+        
+        // Reset all widgets
+        function resetThemes() {
+            Object.values(widgets).forEach(widget => {
+                if (widget && widget.unmount) {
+                    widget.unmount();
+                }
+            });
+            widgets = {};
+            
+            // Show loading states
+            Object.keys(themes).forEach(themeName => {
+                const container = document.getElementById(`widget-${themeName}`);
+                if (container) {
+                    container.innerHTML = '<div class="loading">Loading...</div>';
+                }
+            });
+            
+            const customContainer = document.getElementById('widget-custom');
+            customContainer.innerHTML = '<div class="loading">Click "Apply Custom Theme" to mount widget</div>';
+            
+            // Hide status
+            document.getElementById('customStatus').style.display = 'none';
+            
+            // Remount all themes
+            setTimeout(mountAllThemes, 500);
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('SurvAI Widget Theme Test Page - v1.1.0');
+            console.log('Widget version:', SurvAIWidget.version);
+            
+            mountAllThemes();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SurvAI Widget Test Page</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .test-section {
+            margin-bottom: 40px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #fafafa;
+        }
+        
+        .test-section h2 {
+            color: #555;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        
+        .widget-container {
+            min-height: 300px;
+            border: 2px dashed #ccc;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+            background: white;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .control-group label {
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .control-group input, .control-group select {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background: #005a8b;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .log {
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px;
+            height: 200px;
+            overflow-y: scroll;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        
+        .error {
+            color: #d63384;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        
+        .success {
+            color: #155724;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        
+        .info {
+            color: #0c5460;
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SurvAI Widget Test Page</h1>
+        
+        <div class="test-section">
+            <h2>Basic Widget Test</h2>
+            <div class="controls">
+                <div class="control-group">
+                    <label for="surveyId">Survey ID:</label>
+                    <input type="text" id="surveyId" value="test-survey-1" />
+                </div>
+                <div class="control-group">
+                    <label for="apiUrl">API URL:</label>
+                    <input type="text" id="apiUrl" value="http://localhost:3001" />
+                </div>
+                <div class="control-group">
+                    <label for="theme">Theme:</label>
+                    <select id="theme">
+                        <option value="default">Default</option>
+                        <option value="blue">Blue</option>
+                        <option value="green">Green</option>
+                        <option value="red">Red</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>&nbsp;</label>
+                    <button onclick="mountWidget()">Mount Widget</button>
+                    <button onclick="unmountWidget()">Unmount Widget</button>
+                </div>
+            </div>
+            
+            <div id="widget-container-1" class="widget-container">
+                <p style="color: #666; text-align: center; margin-top: 100px;">
+                    Widget will be mounted here
+                </p>
+            </div>
+            
+            <div class="log" id="log"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Theme Variations</h2>
+            <div class="controls">
+                <button onclick="mountThemeVariants()">Mount Theme Variants</button>
+                <button onclick="unmountThemeVariants()">Unmount All</button>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                <div>
+                    <h3>Default Theme</h3>
+                    <div id="theme-default" class="widget-container" style="min-height: 200px;"></div>
+                </div>
+                <div>
+                    <h3>Blue Theme</h3>
+                    <div id="theme-blue" class="widget-container" style="min-height: 200px;"></div>
+                </div>
+                <div>
+                    <h3>Green Theme</h3>
+                    <div id="theme-green" class="widget-container" style="min-height: 200px;"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Error Handling Test</h2>
+            <div class="controls">
+                <button onclick="testInvalidSurvey()">Test Invalid Survey</button>
+                <button onclick="testNetworkError()">Test Network Error</button>
+                <button onclick="testInvalidContainer()">Test Invalid Container</button>
+            </div>
+            
+            <div id="error-container" class="widget-container">
+                <p style="color: #666; text-align: center; margin-top: 100px;">
+                    Error test results will appear here
+                </p>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Widget Info</h2>
+            <div id="widget-info" class="info">
+                Widget not loaded yet
+            </div>
+        </div>
+    </div>
+
+    <!-- Load React dependencies -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Load SurvAI Widget -->
+    <script src="../dist/widget/survai-widget.umd.js"></script>
+    
+    <script>
+        let currentWidget = null;
+        let themeWidgets = [];
+        
+        function log(message, type = 'info') {
+            const logEl = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+            logEl.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+        
+        function updateWidgetInfo() {
+            const infoEl = document.getElementById('widget-info');
+            if (window.SurvAIWidget) {
+                infoEl.innerHTML = `
+                    <strong>Widget Version:</strong> ${window.SurvAIWidget.version}<br>
+                    <strong>Status:</strong> ${currentWidget ? currentWidget.getStatus() : 'Not mounted'}<br>
+                    <strong>React Version:</strong> ${React.version}<br>
+                    <strong>Available:</strong> Yes
+                `;
+            } else {
+                infoEl.innerHTML = '<strong>Widget Status:</strong> Not loaded';
+            }
+        }
+        
+        function getThemeConfig(themeName) {
+            const themes = {
+                default: {
+                    primaryColor: '#3182ce',
+                    secondaryColor: '#e2e8f0',
+                    fontFamily: 'system-ui, -apple-system, sans-serif',
+                    backgroundColor: '#ffffff',
+                    borderRadius: '0.5rem',
+                    buttonSize: 'medium'
+                },
+                blue: {
+                    primaryColor: '#1e40af',
+                    secondaryColor: '#dbeafe',
+                    fontFamily: 'system-ui, -apple-system, sans-serif',
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '0.75rem',
+                    buttonSize: 'large'
+                },
+                green: {
+                    primaryColor: '#059669',
+                    secondaryColor: '#d1fae5',
+                    fontFamily: 'system-ui, -apple-system, sans-serif',
+                    backgroundColor: '#f0fdf4',
+                    borderRadius: '0.25rem',
+                    buttonSize: 'small'
+                },
+                red: {
+                    primaryColor: '#dc2626',
+                    secondaryColor: '#fee2e2',
+                    fontFamily: 'system-ui, -apple-system, sans-serif',
+                    backgroundColor: '#fef2f2',
+                    borderRadius: '0.5rem',
+                    buttonSize: 'medium'
+                }
+            };
+            return themes[themeName] || themes.default;
+        }
+        
+        function mountWidget() {
+            if (currentWidget) {
+                currentWidget.unmount();
+            }
+            
+            const surveyId = document.getElementById('surveyId').value;
+            const apiUrl = document.getElementById('apiUrl').value;
+            const themeName = document.getElementById('theme').value;
+            const container = document.getElementById('widget-container-1');
+            
+            try {
+                log(`Mounting widget with surveyId: ${surveyId}, apiUrl: ${apiUrl}, theme: ${themeName}`);
+                
+                currentWidget = window.SurvAIWidget.mount(container, {
+                    surveyId: surveyId,
+                    apiUrl: apiUrl,
+                    theme: getThemeConfig(themeName),
+                    onError: (error) => {
+                        log(`Widget error: ${error.message}`, 'error');
+                        console.error('Widget error:', error);
+                    }
+                });
+                
+                log('Widget mounted successfully', 'success');
+                updateWidgetInfo();
+                
+            } catch (error) {
+                log(`Failed to mount widget: ${error.message}`, 'error');
+                console.error('Mount error:', error);
+            }
+        }
+        
+        function unmountWidget() {
+            if (currentWidget) {
+                currentWidget.unmount();
+                currentWidget = null;
+                log('Widget unmounted', 'success');
+                updateWidgetInfo();
+            } else {
+                log('No widget to unmount', 'error');
+            }
+        }
+        
+        function mountThemeVariants() {
+            unmountThemeVariants();
+            
+            const themes = ['default', 'blue', 'green'];
+            
+            themes.forEach(themeName => {
+                const container = document.getElementById(`theme-${themeName}`);
+                if (container) {
+                    try {
+                        const widget = window.SurvAIWidget.mount(container, {
+                            surveyId: 'test-survey-1',
+                            apiUrl: 'http://localhost:3001',
+                            theme: getThemeConfig(themeName),
+                            onError: (error) => {
+                                log(`Theme ${themeName} error: ${error.message}`, 'error');
+                            }
+                        });
+                        
+                        themeWidgets.push(widget);
+                        log(`Theme ${themeName} mounted`, 'success');
+                        
+                    } catch (error) {
+                        log(`Failed to mount theme ${themeName}: ${error.message}`, 'error');
+                    }
+                }
+            });
+        }
+        
+        function unmountThemeVariants() {
+            themeWidgets.forEach(widget => {
+                if (widget) {
+                    widget.unmount();
+                }
+            });
+            themeWidgets = [];
+            log('All theme variants unmounted', 'success');
+        }
+        
+        function testInvalidSurvey() {
+            const container = document.getElementById('error-container');
+            
+            try {
+                window.SurvAIWidget.mount(container, {
+                    surveyId: 'invalid-survey-id',
+                    apiUrl: 'http://localhost:3001',
+                    onError: (error) => {
+                        log(`Expected error for invalid survey: ${error.message}`, 'success');
+                    }
+                });
+                
+            } catch (error) {
+                log(`Caught mount error: ${error.message}`, 'success');
+            }
+        }
+        
+        function testNetworkError() {
+            const container = document.getElementById('error-container');
+            
+            try {
+                window.SurvAIWidget.mount(container, {
+                    surveyId: 'test-survey-1',
+                    apiUrl: 'http://invalid-url-that-does-not-exist:9999',
+                    onError: (error) => {
+                        log(`Expected network error: ${error.message}`, 'success');
+                    }
+                });
+                
+            } catch (error) {
+                log(`Caught network error: ${error.message}`, 'success');
+            }
+        }
+        
+        function testInvalidContainer() {
+            try {
+                window.SurvAIWidget.mount(null, {
+                    surveyId: 'test-survey-1',
+                    apiUrl: 'http://localhost:3001'
+                });
+                
+            } catch (error) {
+                log(`Expected container error: ${error.message}`, 'success');
+            }
+        }
+        
+        // Initialize
+        window.addEventListener('load', function() {
+            updateWidgetInfo();
+            log('Test page loaded successfully', 'success');
+            
+            if (!window.SurvAIWidget) {
+                log('SurvAI Widget not found! Make sure the widget bundle is built.', 'error');
+            }
+        });
+    </script>
+</body>
+</html>
