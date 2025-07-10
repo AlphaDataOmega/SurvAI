@@ -13,9 +13,10 @@ async function seedCTAData() {
   console.log('🌱 Seeding CTA survey data...');
 
   try {
-    // Create sample survey
+    // Create sample survey with demo ID
     const survey = await prisma.survey.create({
       data: {
+        id: 'demo',
         title: 'Financial Services Interest Survey',
         description: 'Help us understand your financial service needs',
         status: 'ACTIVE',
