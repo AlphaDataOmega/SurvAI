@@ -59,6 +59,8 @@ Welcome to the SurvAI documentation hub. This directory contains comprehensive g
   *Updated: Jul 8, 2025 • 12 min read*
 - **📋 [Complete API Reference](../README.md#-api-documentation)** - All API endpoints and examples with authentication  
   *Updated: Jul 9, 2025 • 15 min read*
+- **🔐 [Authentication Flow](#authentication-flow)** - AuthProvider setup, route protection, and testing patterns  
+  *Updated: Jul 10, 2025 • 8 min read*
 
 ### 🧪 Testing & Quality
 - **🎯 [Visual Testing Guide](VISUAL_TESTING.md)** - Comprehensive visual regression testing with Playwright  
@@ -166,6 +168,124 @@ Welcome to the SurvAI documentation hub. This directory contains comprehensive g
 - Many documents link to related sections - follow these for complete understanding
 - Architecture diagrams and code examples appear in multiple documents
 - API references are cross-linked with implementation guides
+
+## 🔐 Authentication Flow
+
+### Overview
+SurvAI implements a comprehensive authentication system using React Context API with JWT-based authentication. The system provides role-based access control with admin privileges for protected routes.
+
+### Provider Setup
+The authentication system requires proper provider hierarchy in your React application:
+
+```typescript
+// Correct provider order in main.tsx
+<QueryClientProvider client={queryClient}>
+  <AuthProvider>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </AuthProvider>
+</QueryClientProvider>
+```
+
+**Critical**: Provider order matters! QueryClient must be outermost for API calls, AuthProvider needs Router for navigation redirects.
+
+### Route Protection
+Protected routes use the `RequireAuth` component wrapper:
+
+```typescript
+// Admin route protection in App.tsx
+<Route 
+  path="/admin" 
+  element={
+    <RequireAuth requireAdmin={true}>
+      <AdminPage />
+    </RequireAuth>
+  } 
+/>
+```
+
+### Authentication States
+- **Loading**: Shows loading spinner while checking authentication
+- **Authenticated**: User is logged in, renders protected content
+- **Unauthenticated**: Redirects to `/login` page
+- **Unauthorized**: Non-admin users accessing admin routes redirect to `/login`
+
+### useAuth Hook
+Components can access authentication state using the `useAuth` hook:
+
+```typescript
+import { useAuth } from './hooks/useAuth';
+
+const MyComponent = () => {
+  const { user, isAuthenticated, isLoading, login, logout } = useAuth();
+  
+  if (isLoading) return <div>Loading...</div>;
+  if (!isAuthenticated) return <div>Please log in</div>;
+  
+  return <div>Welcome, {user?.name}!</div>;
+};
+```
+
+### Testing Patterns
+Use the provided test wrappers for components that require authentication:
+
+```typescript
+import { TestingWrapper } from '../examples/AuthProviderWrapper';
+
+test('component with auth', async () => {
+  render(
+    <TestingWrapper>
+      <MyComponentThatUsesAuth />
+    </TestingWrapper>
+  );
+  
+  await waitFor(() => {
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
+  });
+});
+```
+
+### Common Patterns
+
+#### HOC Pattern (Alternative)
+```typescript
+import { withRequireAuth } from './components/auth/RequireAuth';
+
+const ProtectedComponent = withRequireAuth(MyComponent, true); // requireAdmin = true
+```
+
+#### Error Handling
+```typescript
+// The useAuth hook throws descriptive errors when used incorrectly
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+```
+
+### Examples Reference
+See [AuthProviderWrapper.tsx](../examples/AuthProviderWrapper.tsx) for:
+- Production wrapper with proper provider hierarchy
+- Testing wrapper for unit tests
+- Memory router wrapper for route testing
+- Common pitfalls and solutions
+
+### Implementation Files
+- **AuthProvider**: `frontend/src/hooks/useAuth.tsx`
+- **RequireAuth**: `frontend/src/components/auth/RequireAuth.tsx`
+- **Route Setup**: `frontend/src/App.tsx`
+- **Provider Chain**: `frontend/src/main.tsx`
+- **Test Examples**: `tests/frontend/AdminPage.test.tsx`
+
+### Troubleshooting
+1. **"useAuth must be used within an AuthProvider"**: Ensure AuthProvider wraps your component tree
+2. **Navigation not working**: Check provider order (AuthProvider must be inside BrowserRouter's parent)
+3. **Tests failing**: Use TestingWrapper and mock API calls properly
+4. **Infinite redirects**: Check RequireAuth logic and ensure login route exists
 
 ## 📞 Support & Contributing
 

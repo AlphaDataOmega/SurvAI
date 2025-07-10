@@ -12,6 +12,7 @@ import { QueryClient, QueryClientProvider } from 'react-query'
 import { ReactQueryDevtools } from 'react-query/devtools'
 
 import App from './App'
+import { AuthProvider } from './hooks/useAuth'
 import './index.css'
 
 // Create a client for React Query
@@ -49,9 +50,11 @@ const root = ReactDOM.createRoot(rootElement)
 root.render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </AuthProvider>
       {/* Show React Query DevTools in development */}
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>

@@ -177,12 +177,18 @@ cd SurvAI.3.0
 ./scripts/init.sh
 ```
 
-That's it! The script will:
+**Having issues?** Use the nuclear option for a complete fresh start:
+```bash
+./scripts/init.sh --nuclear --verbose
+```
+
+The script will:
 - ✅ Validate prerequisites (Docker, Node.js, npm)
 - ✅ Generate secure environment configuration
 - ✅ Start all Docker services (PostgreSQL, Redis, management UIs)
+- ✅ Generate Prisma client properly (fixes most startup issues)
 - ✅ Run database migrations and seed initial data
-- ✅ Perform health checks
+- ✅ Validate everything is working correctly
 - ✅ Display setup summary with all access URLs
 
 ### Prerequisites
@@ -1478,40 +1484,70 @@ test(api): add integration tests for offers endpoint
 
 ## 🐛 Troubleshooting
 
-### Common Issues
+### Quick Fixes for Common Issues
 
-**Port already in use:**
+**🚨 Backend "Network Error" or "ERR_CONNECTION_REFUSED":**
 ```bash
-# Kill process using port 3000 or 8000
-lsof -ti:3000 | xargs kill -9
-lsof -ti:8000 | xargs kill -9
-```
-
-**Database connection issues:**
-```bash
-# Restart Docker services
-docker-compose down
-docker-compose up -d
-
-# Check service status
-docker-compose ps
-```
-
-**Node modules issues:**
-```bash
-# Clean install
-npm run clean
-npm install
-```
-
-**TypeScript errors:**
-```bash
-# Regenerate Prisma client
+# Fix Prisma client generation issue
+cd backend
 npm run db:generate
-
-# Check TypeScript configuration
-npm run type-check
+cd ..
+npm run dev
 ```
+
+**🔄 Complete Fresh Setup (Nuclear Option):**
+```bash
+# Stop everything and start fresh
+./scripts/init.sh --force --cleanup --verbose
+```
+
+**🐳 Docker Issues:**
+```bash
+# Complete Docker cleanup and restart
+docker-compose down -v
+docker system prune -f
+./scripts/init.sh --cleanup
+```
+
+**📦 Node Modules Issues:**
+```bash
+# Clean reinstall
+rm -rf node_modules */node_modules
+npm install
+npm run db:generate --workspace=backend
+```
+
+**⚠️ Environment File Issues:**
+```bash
+# Regenerate environment with secure secrets
+rm .env
+./scripts/init.sh --force
+```
+
+**🗄️ Database Connection Problems:**
+```bash
+# Reset database completely
+docker-compose down -v
+docker-compose up -d
+npm run db:push --workspace=backend --accept-data-loss
+npm run db:seed --workspace=backend
+```
+
+**🔍 Check What's Running:**
+```bash
+# Check all running services
+docker-compose ps
+lsof -i :3000  # Frontend
+lsof -i :8000  # Backend
+lsof -i :5432  # PostgreSQL
+lsof -i :6379  # Redis
+```
+
+### Detailed Troubleshooting
+
+For comprehensive troubleshooting information, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+
+**Most Common Issue:** Prisma client not generated properly. Always run `npm run db:generate --workspace=backend` after any schema changes or fresh install.
 
 ### Logs and Debugging
 

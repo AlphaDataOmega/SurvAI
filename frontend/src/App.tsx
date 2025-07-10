@@ -12,11 +12,13 @@ import type { ApiResponse, HealthCheckResponse } from '@survai/shared'
 import { apiClient } from './services/api'
 import { HomePage } from './pages/HomePage'
 import { AdminPage } from './pages/AdminPage'
+import { LoginPage } from './pages/LoginPage'
 import { SurveyPage } from './pages/SurveyPage'
 import { Dashboard } from './components/admin/Dashboard'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { Header } from './components/Header'
 import { Footer } from './components/Footer'
+import { RequireAuth } from './components/auth/RequireAuth'
 
 /**
  * Backend health status interface
@@ -76,8 +78,23 @@ function App(): JSX.Element {
         <main className="main-content">
           <Routes>
             <Route path="/" element={<HomePage />} />
-            <Route path="/admin" element={<AdminPage />} />
-            <Route path="/admin/dashboard" element={<Dashboard />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route 
+              path="/admin" 
+              element={
+                <RequireAuth requireAdmin={true}>
+                  <AdminPage />
+                </RequireAuth>
+              } 
+            />
+            <Route 
+              path="/admin/dashboard" 
+              element={
+                <RequireAuth requireAdmin={true}>
+                  <Dashboard />
+                </RequireAuth>
+              } 
+            />
             <Route path="/survey/:id" element={<SurveyPage />} />
           </Routes>
         </main>

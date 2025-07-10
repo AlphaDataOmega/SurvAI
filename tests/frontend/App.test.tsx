@@ -11,10 +11,16 @@ import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from 'react-query'
 import axios from 'axios'
 import App from '../../frontend/src/App'
+import { AuthProvider } from '../../frontend/src/hooks/useAuth'
+import * as api from '../../frontend/src/services/api'
 import type { ApiResponse, HealthCheckResponse } from '@survai/shared'
 
 // Mock axios
 const mockedAxios = axios as jest.Mocked<typeof axios>
+
+// Mock the API module for auth
+jest.mock('../../frontend/src/services/api')
+const mockedApi = api as jest.Mocked<typeof api>
 
 // Create a wrapper component with required providers
 const createWrapper = () => {
@@ -27,9 +33,11 @@ const createWrapper = () => {
 
   const TestWrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        {children}
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          {children}
+        </BrowserRouter>
+      </AuthProvider>
     </QueryClientProvider>
   )
   TestWrapper.displayName = 'TestWrapper'
@@ -39,6 +47,9 @@ const createWrapper = () => {
 describe('App Component', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    
+    // Mock auth API call to prevent authentication errors in tests
+    mockedApi.api.get.mockRejectedValue(new Error('Unauthorized'))
   })
 
   describe('Rendering', () => {
